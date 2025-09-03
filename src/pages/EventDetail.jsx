@@ -19,15 +19,25 @@ export default function EventDetail() {
 
   useEffect(() => {
     (async () => {
+      setLoading(true); setError(null)
       try {
-        const [evRes, occRes] = await Promise.all([
-          getEvent(id),
-          getOccupiedSeats(id)
-        ])
-        setItem(evRes?.item || null)
-        setOccupied(occRes?.occupied || [])
-      } catch (e) { setError(e.message) }
-      finally { setLoading(false) }
+        // 1) Primero trae el evento
+        const evRes = await getEvent(id)
+        const ev = evRes?.item || null
+        setItem(ev)
+
+        // 2) Sólo pide ocupados si es grid
+        if (ev?.seatMap?.type === 'grid') {
+          const occRes = await getOccupiedSeats(id)
+          setOccupied(occRes?.occupied || [])
+        } else {
+          setOccupied([]) // GA: no aplica
+        }
+      } catch (e) {
+        setError(e.message)
+      } finally {
+        setLoading(false)
+      }
     })()
   }, [id])
 
@@ -43,10 +53,7 @@ export default function EventDetail() {
 
     setBuying(true); setError(null); setSuccess(null)
     try {
-      const seat =
-        item?.seatMap?.type === 'grid'
-          ? selected
-          : { row: 1, col: 1 }
+      const seat = item?.seatMap?.type === 'grid' ? selected : { row: 1, col: 1 }
 
       const res = await purchaseTicket({ eventId: item._id, seat })
       setSuccess(`Compra exitosa. Ticket ID: ${res?.id || res?._id || '—'}`)
@@ -59,8 +66,10 @@ export default function EventDetail() {
       if (/occupied|duplicate|already/i.test(e.message)) {
         setError('Ese asiento ya fue tomado. Elige otro.')
         try {
-          const occ = await getOccupiedSeats(id)
-          setOccupied(occ?.occupied || [])
+          if (item?.seatMap?.type === 'grid') {
+            const occ = await getOccupiedSeats(id)
+            setOccupied(occ?.occupied || [])
+          }
         } catch {}
       } else {
         setError(e.message)
