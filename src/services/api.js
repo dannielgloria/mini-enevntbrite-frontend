@@ -30,8 +30,10 @@ export async function createEvent(payload) {
     return data
 }
 
-export async function purchaseTicket({eventId, set}) {
-    const { data } = await http.post('/tickets/purchase',{eventId, set})
+export async function purchaseTicket({eventId, seat}) {
+    const { data } = await http.post('/tickets/purchase',{eventId, seat})
+    console.log(data)
+
     return data
 }
 
